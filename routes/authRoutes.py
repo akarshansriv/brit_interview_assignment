@@ -1,19 +1,14 @@
 import os
+import datetime
 from dotenv import load_dotenv
-from fastapi import APIRouter, Depends, HTTPException
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi import APIRouter, Depends, HTTPException, Header
+from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from models.user import User
-from models.item import Base
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy import create_engine
 from passlib.context import CryptContext
-from jose import JWTError, jwt
-from typing import Optional
-from pydantic import BaseModel
+from jose import jwt
 from database import get_db
-import datetime
-from models.auth import UserCreate, UserLogin
+from models.authUser import UserCreate, UserLogin
 
 load_dotenv()
 
@@ -31,11 +26,6 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 def hash_password(password: str):
     return pwd_context.hash(password)
 
-
-def get_user(username: str, db: Session = Depends(get_db)):
-    return db.query(User).filter(User.username == username).first()
-
-
 def create_access_token(data: dict, expires_delta=None):
     to_encode = data.copy()
     if expires_delta:
@@ -49,6 +39,7 @@ def create_access_token(data: dict, expires_delta=None):
     return encoded_jwt
 
 
+# Login Route
 @router.post("/login")
 def login(user: UserLogin, db: Session = Depends(get_db)):
     db_user = db.query(User).filter(User.username == user.username).first()
@@ -56,15 +47,15 @@ def login(user: UserLogin, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Invalid username or password")
 
     access_token = create_access_token(data={"sub": db_user.username})
-    db_user.jwt_token = access_token
     db.commit()
 
     return {"access_token": access_token, "token_type": "bearer"}
 
 
+# User Registration Route
 @router.post("/register")
 def register_user(user: UserCreate, db: Session = Depends(get_db)):
-    existing_user = get_user(user.username, db)
+    existing_user = UserCreate.get_user(user.username, db)
     print("user", user)
     if existing_user:
         raise HTTPException(status_code=400, detail="Username already registered")
