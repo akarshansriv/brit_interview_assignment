@@ -16,7 +16,6 @@ def get_authorization_header(authorization: str = Header(None)):
         raise HTTPException(status_code=401, detail="Authorization header missing")
 
     try:
-        # Assuming the token is in the format: "Bearer token"
         token = authorization.split()[1]
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
 
@@ -25,7 +24,6 @@ def get_authorization_header(authorization: str = Header(None)):
         if exp_timestamp is None:
             raise HTTPException(status_code=401, detail="Invalid token format")
 
-        # Convert the expiration timestamp to datetime
         expiration = datetime.datetime.fromtimestamp(exp_timestamp, tz=datetime.timezone.utc)
         if datetime.datetime.now(datetime.timezone.utc) > expiration:
             raise HTTPException(
@@ -35,4 +33,4 @@ def get_authorization_header(authorization: str = Header(None)):
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
 
-    return payload
+    return token

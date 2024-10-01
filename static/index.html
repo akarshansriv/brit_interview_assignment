@@ -60,21 +60,16 @@
             margin-top: 20px;
             font-size: 1.5em;
             color: yellow;
-            /* Optional: Change color for visibility */
             text-align: center;
-            /* Center text */
             display: none;
-            /* Initially hidden */
         }
 
         #costContainer {
             text-align: center;
-            /* Center the total cost */
         }
 
         #backButton {
             display: none;
-            /* Initially hidden */
             margin-top: 20px;
         }
     </style>
@@ -99,7 +94,6 @@
             <button type="submit">Register</button>
         </form>
 
-        <!-- This section will be hidden until the user logs in successfully -->
         <div id="itemCartSection" style="display: none;">
             <h2>Items</h2>
             <table id="itemTable">
@@ -123,7 +117,7 @@
 
         <div id="costContainer" style="display: none;">
             <h3 id="totalCost"></h3>
-            <button id="backButton">Back to Add Items</button> <!-- Back button -->
+            <button id="backButton">Back to Add Items</button>
         </div>
     </div>
 
@@ -175,13 +169,11 @@
                     accessToken = data.access_token;
                     alert('Logged in successfully!');
 
-                    // Hide login and register forms along with their headings
                     $('#loginForm').hide();
                     $('#registerForm').hide();
                     $('#loginHeading').hide();
                     $('#registerHeading').hide();
 
-                    // Show items and cart section along with the cart form and summary button
                     $('#itemCartSection').show();
                     $('#addItemForm').show();
                     $('#summaryButton').show();
@@ -223,14 +215,22 @@
             event.preventDefault();
 
             const itemId = $(this).find('input[name="item_id"]').val();
-            const quantity = $(this).find('input[name="quantity"]').val();
+            const quantity = parseInt($(this).find('input[name="quantity"]').val());
 
-            cartItems.push({
-                item_id: itemId,
-                quantity: parseInt(quantity)
+            $.ajax({
+                url: '/cart/add',
+                type: 'POST',
+                contentType: 'application/json',
+                headers: { 'Authorization': `Bearer ${accessToken}` },
+                data: JSON.stringify({ item_id: itemId, quantity: quantity }),
+                success: function (data) {
+                    cartItems = data.cart; // Update cartItems with the response from the backend
+                    alert('Item added to cart!');
+                },
+                error: function () {
+                    alert('Failed to add item to cart!');
+                }
             });
-
-            alert('Item added to cart!');
         });
 
         // Handle summary button click to get cart total
@@ -247,12 +247,11 @@
                 headers: { 'Authorization': `Bearer ${accessToken}` },
                 data: JSON.stringify(cartItems),
                 success: function (data) {
-                    // Hide everything except total cost and back button
                     $('#itemCartSection').hide();
                     $('#totalCost').text(`Total Cost: €${data.total}`).show();
-                    $('#costContainer').show(); // Show cost container
-                    $('#backButton').show(); // Show back button
-                    $('#summaryButton').hide(); // Hide summary button
+                    $('#costContainer').show();
+                    $('#backButton').show();
+                    $('#summaryButton').hide();
                 },
                 error: function () {
                     alert('Failed to get cart total!');
@@ -262,11 +261,11 @@
 
         // Handle back button click to return to item addition
         $('#backButton').on('click', function () {
-            $('#totalCost').hide(); // Hide total cost
-            $('#backButton').hide(); // Hide back button
-            $('#costContainer').hide(); // Hide cost container
-            $('#itemCartSection').show(); // Show item cart section
-            $('#summaryButton').show(); // Show summary button
+            $('#totalCost').hide();
+            $('#backButton').hide();
+            $('#costContainer').hide();
+            $('#itemCartSection').show();
+            $('#summaryButton').show();
         });
     </script>
 </body>

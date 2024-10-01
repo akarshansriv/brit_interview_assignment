@@ -26,6 +26,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 def hash_password(password: str):
     return pwd_context.hash(password)
 
+
 def create_access_token(data: dict, expires_delta=None):
     to_encode = data.copy()
     if expires_delta:
@@ -56,9 +57,11 @@ def login(user: UserLogin, db: Session = Depends(get_db)):
 @router.post("/register")
 def register_user(user: UserCreate, db: Session = Depends(get_db)):
     existing_user = UserCreate.get_user(user.username, db)
-    print("user", user)
+    existing_mail = UserCreate.get_user_from_email(user.email, db)
     if existing_user:
         raise HTTPException(status_code=400, detail="Username already registered")
+    if existing_mail:
+        raise HTTPException(status_code=400, detail="Mail id already registered")
 
     hashed_password = hash_password(user.password)
     new_user = User(username=user.username, email=user.email, password=hashed_password)
