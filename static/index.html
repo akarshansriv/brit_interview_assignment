@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Item Store</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+
+        #summaryButton,
+        button {
+            background-color: orange;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+            margin-left: 200px;
+            
+        }
+
+        button:hover {
+            background-color: darkorange;
+        }
+
+        #contentWrapper {
+            background-color: rgb(13, 104, 232);
+            padding: 20px;
+            color: white;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        td {
+            background-color: #f2f2f2;
+            color: black;
+        }
+
+        #totalCost {
+            margin-top: 20px;
+            font-size: 1.5em;
+            color: yellow;
+            /* Optional: Change color for visibility */
+            text-align: center;
+            /* Center text */
+            display: none;
+            /* Initially hidden */
+        }
+
+        #costContainer {
+            text-align: center;
+            /* Center the total cost */
+        }
+
+        #backButton {
+            display: none;
+            /* Initially hidden */
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Item Store</h1>
+
+    <div id="contentWrapper">
+        <h2 id="loginHeading">Login</h2>
+        <form id="loginForm">
+            <input type="text" name="username" placeholder="Username" required />
+            <input type="password" name="password" placeholder="Password" required />
+            <button type="submit">Login</button>
+        </form>
+
+        <h2 id="registerHeading">Register</h2>
+        <form id="registerForm">
+            <input type="text" name="username" placeholder="Username" required />
+            <input type="email" name="email" placeholder="Email" required />
+            <input type="password" name="password" placeholder="Password" required />
+            <button type="submit">Register</button>
+        </form>
+
+        <!-- This section will be hidden until the user logs in successfully -->
+        <div id="itemCartSection" style="display: none;">
+            <h2>Items</h2>
+            <table id="itemTable">
+                <thead>
+                    <tr>
+                        <th>Item ID</th>
+                        <th>Name</th>
+                        <th>Price (€)</th>
+                    </tr>
+                </thead>
+                <tbody id="itemList"></tbody>
+            </table>
+
+            <h2>Cart</h2>
+            <form id="addItemForm">
+                <input type="text" name="item_id" placeholder="Item ID" required />
+                <input type="number" name="quantity" placeholder="Quantity" required />
+                <button type="submit">Add to Cart</button>
+            </form>
+        </div>
+
+        <div id="costContainer" style="display: none;">
+            <h3 id="totalCost"></h3>
+            <button id="backButton">Back to Add Items</button> <!-- Back button -->
+        </div>
+    </div>
+
+    <button id="summaryButton" style="display: none;">Summary</button>
+
+    <script>
+        let accessToken = '';
+        let cartItems = [];
+
+        // Handle registration form submission
+        $('#registerForm').on('submit', function (event) {
+            event.preventDefault();
+
+            const formData = {
+                username: $(this).find('input[name="username"]').val(),
+                email: $(this).find('input[name="email"]').val(),
+                password: $(this).find('input[name="password"]').val()
+            };
+
+            $.ajax({
+                url: '/register',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(formData),
+                success: function () {
+                    alert('User registered successfully! You can now log in.');
+                },
+                error: function () {
+                    alert('Registration failed!');
+                }
+            });
+        });
+
+        // Handle login form submission
+        $('#loginForm').on('submit', function (event) {
+            event.preventDefault();
+
+            const formData = {
+                username: $(this).find('input[name="username"]').val(),
+                password: $(this).find('input[name="password"]').val()
+            };
+
+            $.ajax({
+                url: '/login',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(formData),
+                success: function (data) {
+                    accessToken = data.access_token;
+                    alert('Logged in successfully!');
+
+                    // Hide login and register forms along with their headings
+                    $('#loginForm').hide();
+                    $('#registerForm').hide();
+                    $('#loginHeading').hide();
+                    $('#registerHeading').hide();
+
+                    // Show items and cart section along with the cart form and summary button
+                    $('#itemCartSection').show();
+                    $('#addItemForm').show();
+                    $('#summaryButton').show();
+                    loadItems();
+                },
+                error: function () {
+                    alert('Login failed!');
+                }
+            });
+        });
+
+        // Load items from the backend
+        function loadItems() {
+            $.ajax({
+                url: '/items',
+                type: 'GET',
+                headers: { 'Authorization': `Bearer ${accessToken}` },
+                success: function (data) {
+                    $('#itemTable').show();
+                    $('#itemList').empty();
+                    data.forEach(item => {
+                        $('#itemList').append(
+                            `<tr>
+                                <td>${item.id}</td>
+                                <td>${item.name}</td>
+                                <td>${item.price}</td>
+                            </tr>`
+                        );
+                    });
+                },
+                error: function () {
+                    alert('Failed to load items!');
+                }
+            });
+        }
+
+        // Handle add item to cart form submission
+        $('#addItemForm').on('submit', function (event) {
+            event.preventDefault();
+
+            const itemId = $(this).find('input[name="item_id"]').val();
+            const quantity = $(this).find('input[name="quantity"]').val();
+
+            cartItems.push({
+                item_id: itemId,
+                quantity: parseInt(quantity)
+            });
+
+            alert('Item added to cart!');
+        });
+
+        // Handle summary button click to get cart total
+        $('#summaryButton').on('click', function () {
+            if (cartItems.length === 0) {
+                alert('No items in the cart!');
+                return;
+            }
+
+            $.ajax({
+                url: '/cart/total',
+                type: 'POST',
+                contentType: 'application/json',
+                headers: { 'Authorization': `Bearer ${accessToken}` },
+                data: JSON.stringify(cartItems),
+                success: function (data) {
+                    // Hide everything except total cost and back button
+                    $('#itemCartSection').hide();
+                    $('#totalCost').text(`Total Cost: €${data.total}`).show();
+                    $('#costContainer').show(); // Show cost container
+                    $('#backButton').show(); // Show back button
+                    $('#summaryButton').hide(); // Hide summary button
+                },
+                error: function () {
+                    alert('Failed to get cart total!');
+                }
+            });
+        });
+
+        // Handle back button click to return to item addition
+        $('#backButton').on('click', function () {
+            $('#totalCost').hide(); // Hide total cost
+            $('#backButton').hide(); // Hide back button
+            $('#costContainer').hide(); // Hide cost container
+            $('#itemCartSection').show(); // Show item cart section
+            $('#summaryButton').show(); // Show summary button
+        });
+    </script>
+</body>
+
+</html>
