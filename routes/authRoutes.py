@@ -4,9 +4,9 @@ from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, HTTPException, Header
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
+from jose import jwt
 from models.user import User
 from passlib.context import CryptContext
-from jose import jwt
 from database import get_db
 from models.authUser import UserCreate, UserLogin
 
@@ -23,10 +23,12 @@ router = APIRouter()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
+# Hash the password
 def hash_password(password: str):
     return pwd_context.hash(password)
 
 
+# Create access token
 def create_access_token(data: dict, expires_delta=None):
     to_encode = data.copy()
     if expires_delta:
@@ -68,3 +70,12 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
     db.add(new_user)
     db.commit()
     return {"message": "User registered successfully"}
+
+
+@router.post("/logout")
+def logout(token: str = Depends(oauth2_scheme)):
+    """
+    Invalidate the token on the client-side by clearing it.
+    This API doesn't do much on the server-side since JWT tokens are stateless.
+    """
+    return {"message": "Logged out successfully. Please go to the homepage."}

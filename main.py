@@ -2,9 +2,6 @@ from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
-from models.item import Base
 from routes.itemRoutes import router as item_router
 from routes.authRoutes import router as auth_router
 from database import get_db

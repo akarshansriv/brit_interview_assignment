@@ -20,7 +20,6 @@
             border-radius: 5px;
             cursor: pointer;
             margin-top: 10px;
-
         }
 
         button:hover {
@@ -72,6 +71,15 @@
             display: none;
             margin-top: 20px;
         }
+
+        #logoutButton {
+            display: none;
+            background-color: red;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 10px 20px;
+        }
     </style>
 </head>
 
@@ -99,8 +107,7 @@
             <table id="itemTable">
                 <thead>
                     <tr>
-                        <th>Item ID</th>
-                        <th>Name</th>
+                        <th>Item Name</th>
                         <th>Price (€)</th>
                     </tr>
                 </thead>
@@ -109,7 +116,7 @@
 
             <h2>Cart</h2>
             <form id="addItemForm">
-                <input type="text" name="item_id" placeholder="Item ID" required />
+                <input type="text" name="item_name" placeholder="Item Name" required />
                 <input type="number" name="quantity" placeholder="Quantity" required />
                 <button type="submit">Add to Cart</button>
             </form>
@@ -122,10 +129,18 @@
     </div>
 
     <button id="summaryButton" style="display: none;">Summary</button>
+    <button id="logoutButton" style="display: none;">Logout</button>
 
     <script>
-        let accessToken = '';
         let cartItems = [];
+
+        $(document).ready(function () {
+            const storedToken = localStorage.getItem('accessToken');
+            if (storedToken) {
+                accessToken = storedToken;
+                handleLoginSuccess();
+            }
+        });
 
         // Handle registration form submission
         $('#registerForm').on('submit', function (event) {
@@ -167,20 +182,41 @@
                 data: JSON.stringify(formData),
                 success: function (data) {
                     accessToken = data.access_token;
-                    alert('Logged in successfully!');
-
-                    $('#loginForm').hide();
-                    $('#registerForm').hide();
-                    $('#loginHeading').hide();
-                    $('#registerHeading').hide();
-
-                    $('#itemCartSection').show();
-                    $('#addItemForm').show();
-                    $('#summaryButton').show();
-                    loadItems();
+                    localStorage.setItem('accessToken', accessToken);
+                    handleLoginSuccess();
                 },
                 error: function () {
                     alert('Login failed!');
+                }
+            });
+        });
+
+        function handleLoginSuccess() {
+            $('#loginForm').hide();
+            $('#registerForm').hide();
+            $('#loginHeading').hide();
+            $('#registerHeading').hide();
+            $('#logoutButton').show();
+
+            $('#itemCartSection').show();
+            $('#addItemForm').show();
+            $('#summaryButton').show();
+            loadItems();
+        }
+
+        $('#logoutButton').on('click', function () {
+            $.ajax({
+                url: '/logout',
+                type: 'POST',
+                headers: { 'Authorization': `Bearer ${accessToken}` },
+                success: function () {
+                    alert('Logged out successfully!');
+                    accessToken = '';
+                    localStorage.removeItem('accessToken');
+                    window.location.href = '/';
+                },
+                error: function () {
+                    alert('Failed to log out!');
                 }
             });
         });
@@ -197,7 +233,6 @@
                     data.forEach(item => {
                         $('#itemList').append(
                             `<tr>
-                                <td>${item.id}</td>
                                 <td>${item.name}</td>
                                 <td>${item.price}</td>
                             </tr>`
@@ -214,7 +249,7 @@
         $('#addItemForm').on('submit', function (event) {
             event.preventDefault();
 
-            const itemId = $(this).find('input[name="item_id"]').val();
+            const item_name = $(this).find('input[name="item_name"]').val();
             const quantity = parseInt($(this).find('input[name="quantity"]').val());
 
             $.ajax({
@@ -222,7 +257,7 @@
                 type: 'POST',
                 contentType: 'application/json',
                 headers: { 'Authorization': `Bearer ${accessToken}` },
-                data: JSON.stringify({ item_id: itemId, quantity: quantity }),
+                data: JSON.stringify({ item_name: item_name, quantity: quantity }),
                 success: function (data) {
                     cartItems = data.cart; // Update cartItems with the response from the backend
                     alert('Item added to cart!');

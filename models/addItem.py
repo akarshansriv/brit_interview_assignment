@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 
+
 class AddItemRequest(BaseModel):
-    item_id: int
+    item_name: str
     quantity: int

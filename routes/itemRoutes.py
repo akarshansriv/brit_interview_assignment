@@ -31,7 +31,7 @@ def add_item_to_cart(
 ):
     user_token = authorization
 
-    item = db.query(Item).filter(Item.id == item_request.item_id).first()
+    item = db.query(Item).filter(Item.name == item_request.item_name.strip()).first()
 
     if not item:
         raise HTTPException(
@@ -49,13 +49,11 @@ def add_item_to_cart(
 
     cart = carts[user_token]
     for cart_item in cart:
-        if cart_item["item_id"] == item_request.item_id:
+        if cart_item["item_name"] == item_request.item_name:
             cart_item["quantity"] += item_request.quantity
             break
     else:
-        cart.append(
-            {"item_id": item.id, "name": item.name, "quantity": item_request.quantity}
-        )
+        cart.append({"item_name": item.name, "quantity": item_request.quantity})
 
     return {"cart": cart}
 
@@ -75,12 +73,12 @@ def calculate_cart_total(
     total_cost = 0
 
     for cart_item in cart:
-        item = db.query(Item).filter(Item.id == cart_item["item_id"]).first()
+        item = db.query(Item).filter(Item.name == cart_item["item_name"]).first()
 
         if not item:
             raise HTTPException(
                 status_code=404,
-                detail=f"Item with ID {cart_item['item_id']} not found.",
+                detail=f"Item with name {cart_item['item_name']} not found.",
             )
 
         if cart_item["quantity"] > item.stock:
